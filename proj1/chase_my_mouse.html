@@ -8,8 +8,10 @@
 			var context = null;
 			var bufferCanvas = null;
 			var bufferCanvasCtx = null;
-			var mousePos = null;
 			var animateTimer = null;
+			var mousePos = null;
+			var goalX = 0;
+			var goalY = 0;
 			var posX = 0;
 			var posY = 0;
 			var speed = 1.0;
@@ -20,8 +22,11 @@
 			var speedX = 0;
 			var speedY = 0;
 			var speedAngle = 0;
-			var inertia = 0.4;
+			var inertia = 0;
 			var state = 0;	// 0: chase the mouse; 1: try to stop; 2: static state
+			var offsetSpeed = 100;
+			var offsetAngle = 0;
+			var offsetAngleInc = 0.1;
 			
 			function init() {
 				info = document.getElementById('info');
@@ -42,10 +47,11 @@
 					mousePos = getMousePos(canvas, evt);
 					state = 1;
 					if (animateTimer == null) {
-						posX = mousePos.x;
-						posY = mousePos.y;
+						posX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
+						posY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
 						animateTimer = setInterval(animate, 25);
 					}
+					updateGoal();
 				}, false);
 			}
 
@@ -64,68 +70,44 @@
 			}
 
 			function animate() {
-				if (Update()) Draw();
-				// Update();
-				// Draw();
-				info.innerHTML= posX + ", " +  posY + "->" + mousePos.x + ", " +  mousePos.y;
+				// if (Update()) Draw();
+				updateGoal();
+				updateMove();
+				drawMove();
+				info.innerHTML= posX + ", " +  posY + "->" + goalX + ", " + goalY;
 			}
 
-			function Update() {
-				var numeratorX = abs(posX - mousePos.x);
-				var numeratorY = abs(posY - mousePos.y);
+			function updateGoal() {
+				offsetAngle += offsetAngleInc
+				goalX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
+				goalY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
+			}
+
+			function updateMove() {
+				var numeratorX = abs(posX - goalX);
+				var numeratorY = abs(posY - goalY);
 				var dominator = numeratorX + numeratorY;
 				
-				if (dominator < 10 && state == 1) {
-					state = 2;
-				}
-				
-				if (state == 1) {
-					UpdateMoving(numeratorX, numeratorY, dominator);
-					debug.innerHTML = "Moving";
-					return true;
-				}
-				else if (state == 2) {
-					UpdateStopping();
-					debug.innerHTML = "Stopping";
-					return true;
-				}
-				else if (state >= 3 && state < 20) {
-					state = state + 1;
-					debug.innerHTML = "Stopped";
-					return true;
-				}
-				state = 0;
-				return false;
-			}
-
-			function UpdateMoving(numeratorX, numeratorY, dominator) {
 				if (speed < 32) speed += 1;
 				if (dominator < 300) speed = speed / 1.2 + 1;
+				if (dominator == 0) dominator = 0.1;
 
 				speed = Math.round(speed);
 
-				speedX = inertia * speedX + (1 - inertia) * sign(mousePos.x - posX) * min(speed * numeratorX / dominator, numeratorX);
-				speedY = inertia * speedY + (1 - inertia) * sign(mousePos.y - posY) * min(speed * numeratorY / dominator, numeratorY);
+				speedX = inertia * speedX + (1 - inertia) * sign(goalX - posX) * min(speed * numeratorX / dominator, numeratorX);
+				speedY = inertia * speedY + (1 - inertia) * sign(goalY - posY) * min(speed * numeratorY / dominator, numeratorY);
 				posX += Math.round(speedX);
 				posY += Math.round(speedY);
 
-				var numeratorX = speedX;
-				var numeratorY = speedY;
-				var dominator = Math.sqrt(numeratorX * numeratorX + numeratorY * numeratorY);
-				var angle = Math.acos(numeratorY/dominator);
-				if (numeratorX > 0) angle = Math.PI * 2 - angle;
+				angle = calculateAngle(speedX, speedY);
 				speedAngle = inertia * speedAngle + (1 - inertia) * angle;
 			}
 
-			function UpdateStopping() {
-				
-			}
-
-			function Draw(){
+			function drawMove(){
 				bufferCanvasCtx.save();
 				blank(0.7);
 
-				// debug.innerHTML = "Go at speed (" + speedX +", " + speedY + "), with angle " + speedAngle + " " + state;
+				debug.innerHTML = "Go at speed (" + speedX +", " + speedY + "), with angle " + speedAngle + " " + state;
 
 				bufferCanvasCtx.translate(posX, posY);
 				bufferCanvasCtx.rotate(speedAngle);
@@ -134,6 +116,13 @@
 				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
 
 				bufferCanvasCtx.restore();
+			}
+
+			function calculateAngle(x, y) {
+				var z = Math.sqrt(x * x + y * y);
+				var ans = Math.acos(y/z);
+				if (x > 0) ans = Math.PI * 2 - ans;
+				return ans;
 			}
 
 			function abs(a) {
