@@ -28,6 +28,7 @@
 			// var offsetAngle = 0;
 			// var offsetAngleInc = 0.1;
 			var state = 0;
+			var audio = null;
 			var storyPtr = -1;
 			var storyLines = [];
 			var storyTexts = [];
@@ -47,6 +48,8 @@
 				buildStory();
 				blank(1);
 				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
+				audio = new Audio('about_dream.mp3');
+				audio.loop = true;
 
 				canvas.addEventListener('mousemove', function(evt) {
 					mousePos = getMousePos(canvas, evt);
@@ -160,13 +163,23 @@
 			}
 
 			function updateStoryLine() {
-				storyPtr = -1;
+				var ptr = -1;
 				for (i = 0; i < storyLines.length; i++) {
 					if (((storyLines[i][0] < posX && storyLines[i][2] > posX) || (storyLines[i][0] > posX && storyLines[i][2] < posX)) && storyLines[i][1] < posY && storyLines[i][3] > posY) {
-						storyPtr = i;
+						ptr = i;
 						break;
 					}
 				}
+				if (storyPtr == ptr) {
+					return;
+				}
+				if (ptr != -1) {
+					audio.play();
+				}
+				else {
+					audio.pause();
+				}
+				storyPtr = ptr;
 			}
 
 			function drawMove(){
