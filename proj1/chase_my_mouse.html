@@ -17,22 +17,24 @@
 			var speed = 1.0;
 			var info = null;
 			var debug = null;
-			var mouseImg = null;
-			var mouseSize = 40;
+			var imgArray = null;
+			var imgSize = 200;
+			var imgNum = 0;
 			var speedX = 0;
 			var speedY = 0;
 			var speedAngle = 0;
-			var inertia = 0;
-			var state = 0;	// 0: chase the mouse; 1: try to stop; 2: static state
-			var offsetSpeed = 100;
-			var offsetAngle = 0;
-			var offsetAngleInc = 0.1;
+			var inertia = 0.3;
+			// var offsetSpeed = 0;
+			// var offsetAngle = 0;
+			// var offsetAngleInc = 0.1;
+			var state = 0;
+			var storyPtr = -1;
+			var storyLines = [];
+			var storyTexts = [];
 			
 			function init() {
 				info = document.getElementById('info');
 				debug = document.getElementById('debug');
-
-				mouseImg = document.getElementById("mouseImg");
 
 				canvas = document.getElementById('shownCanvas');
 				context = canvas.getContext("2d");
@@ -40,19 +42,45 @@
 				bufferCanvasCtx = bufferCanvas.getContext("2d");
 				bufferCanvasCtx.canvas.width = context.canvas.width;
 				bufferCanvasCtx.canvas.height = context.canvas.height;
+
+				buildImgArray();
+				buildStory();
 				blank(1);
 				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
 
 				canvas.addEventListener('mousemove', function(evt) {
 					mousePos = getMousePos(canvas, evt);
-					state = 1;
 					if (animateTimer == null) {
-						posX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
-						posY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
+						posX = mousePos.x;
+						posY = mousePos.y;
 						animateTimer = setInterval(animate, 25);
 					}
+					state = 0;
 					updateGoal();
 				}, false);
+			}
+
+			function buildImgArray() {
+				imgArray = [];
+				for (i = 0; i <= 96; i++) {
+					var img = document.createElement("img");
+					if (i < 10)
+						img.setAttribute("src", "Jellyfish_loop/Jellyfish_loop_00000_0000"+i+".png");
+					else
+						img.setAttribute("src", "Jellyfish_loop/Jellyfish_loop_00000_000"+i+".png");
+					img.setAttribute("width", imgSize);
+					img.setAttribute("height", imgSize);
+					imgArray.push(img);
+				}
+			}
+
+			function buildStory() {
+				storyLines.push([0, 80, 500, 200]);
+				storyTexts.push("this is a story.")
+				storyLines.push([bufferCanvasCtx.canvas.width, 280, bufferCanvasCtx.canvas.width - 500, 400]);
+				storyTexts.push("this is a story, too.")
+				storyLines.push([0, 480, 500, 600]);
+				storyTexts.push("this is a story, three. :)")
 			}
 
 			function getMousePos(canvas, evt) {
@@ -64,23 +92,47 @@
 			}
 
 			function blank(a) {
-				// bufferCanvasCtx.fillStyle = "#330033";
-				bufferCanvasCtx.fillStyle = "rgba(100, 0, 100, " + a + ")";
+				bufferCanvasCtx.fillStyle = "rgba(50, 70, 210, " + a + ")";
 				bufferCanvasCtx.fillRect(0,0,bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+				for (i = 0; i < storyLines.length; i++) {
+					bufferCanvasCtx.strokeStyle = "rgb(20, 210, 225)";
+					bufferCanvasCtx.lineWidth=20;
+					bufferCanvasCtx.beginPath();
+					bufferCanvasCtx.moveTo(storyLines[i][0], storyLines[i][1]);
+					bufferCanvasCtx.lineTo(storyLines[i][0], storyLines[i][3]);
+					bufferCanvasCtx.stroke();
+				}
+				if (storyPtr == -1) return;
+				bufferCanvasCtx.lineWidth=2;
+				bufferCanvasCtx.textAlign = "center";
+				bufferCanvasCtx.font = "50px Comic Sans MS";
+				bufferCanvasCtx.strokeText(storyTexts[storyPtr], bufferCanvasCtx.canvas.width / 2 ,(storyLines[storyPtr][1] + storyLines[storyPtr][3]) / 2);
 			}
 
 			function animate() {
 				// if (Update()) Draw();
 				updateGoal();
 				updateMove();
+				updateStoryLine();
 				drawMove();
+				drawStoryLine();
 				info.innerHTML= posX + ", " +  posY + "->" + goalX + ", " + goalY;
 			}
 
 			function updateGoal() {
-				offsetAngle += offsetAngleInc
-				goalX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
-				goalY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
+				// offsetAngle -= offsetAngleInc;
+				// goalX = mousePos.x + offsetSpeed * Math.sin(offsetAngle);
+				// goalY = mousePos.y + offsetSpeed * Math.cos(offsetAngle);
+				if (state == 0) {
+					goalX = mousePos.x;
+					goalY = mousePos.y;
+				}
+				else if (state == 100) {
+					state = 0;
+					goalX = mousePos.x + Math.random() * 200 - 100;
+					goalY = mousePos.y + Math.random() * 200 - 100;
+				}
+				state++;
 			}
 
 			function updateMove() {
@@ -88,9 +140,9 @@
 				var numeratorY = abs(posY - goalY);
 				var dominator = numeratorX + numeratorY;
 				
-				if (speed < 32) speed += 1;
-				if (dominator < 300) speed = speed / 1.2 + 1;
-				if (dominator == 0) dominator = 0.1;
+				if (speed < 16) speed += 0.5;
+				if (dominator < 300) speed = dominator / 20 - 1;
+				// if (dominator < 50) return;
 
 				speed = Math.round(speed);
 
@@ -100,21 +152,47 @@
 				posY += Math.round(speedY);
 
 				angle = calculateAngle(speedX, speedY);
-				speedAngle = inertia * speedAngle + (1 - inertia) * angle;
+				// speedAngle = inertia * speedAngle + (1 - inertia) * angle;
+				// speedAngle = angle;
+				speedAngle = angle + Math.PI;
+
+				debug.innerHTML = "Go at speed (" + speedX +", " + speedY + "), with angle " + speedAngle;
+			}
+
+			function updateStoryLine() {
+				storyPtr = -1;
+				for (i = 0; i < storyLines.length; i++) {
+					if (((storyLines[i][0] < posX && storyLines[i][2] > posX) || (storyLines[i][0] > posX && storyLines[i][2] < posX)) && storyLines[i][1] < posY && storyLines[i][3] > posY) {
+						storyPtr = i;
+						break;
+					}
+				}
 			}
 
 			function drawMove(){
 				bufferCanvasCtx.save();
-				blank(0.7);
-
-				debug.innerHTML = "Go at speed (" + speedX +", " + speedY + "), with angle " + speedAngle + " " + state;
+				blank(0.6);
 
 				bufferCanvasCtx.translate(posX, posY);
 				bufferCanvasCtx.rotate(speedAngle);
-				bufferCanvasCtx.drawImage(mouseImg, - mouseSize / 2, - mouseSize / 2, mouseSize, mouseSize);
+				bufferCanvasCtx.drawImage(imgArray[imgNum], - imgSize / 2, - imgSize / 2, imgSize, imgSize);
+
+				imgNum += 1;
+				if (imgNum >= imgArray.length) {
+					imgNum = 0;
+				}
 
 				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
 
+				bufferCanvasCtx.restore();
+			}
+
+			function drawStoryLine() {
+				if (storyPtr < 0) return;
+				bufferCanvasCtx.save();
+				bufferCanvasCtx.fillStyle = "rgba(255, 255, 10, 0.4)";
+				bufferCanvasCtx.fillRect(0, storyLines[storyPtr][1], bufferCanvasCtx.canvas.width, storyLines[storyPtr][3] - storyLines[storyPtr][1]);
+				context.drawImage(bufferCanvas, 0,0,bufferCanvas.width, bufferCanvas.height);
 				bufferCanvasCtx.restore();
 			}
 
@@ -142,11 +220,11 @@
 		</script>
 	</head>
 	<body onload="init()">
-		<canvas id="shownCanvas" width="1800" height="900">
+		<canvas id="shownCanvas" width="1400" height="900">
 			Canvas not supported
 		</canvas>
 		<p id="info">info</p>
 		<p id="debug">debug</p>
-		<img id="mouseImg" src="mouse-test.png" width="20" height="20" style="display:none;">
+
 	</body>
 </html>
