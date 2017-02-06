@@ -43,6 +43,7 @@
 			var fireAlpha = 0;
 			var fireIdx = 0;
 			var flowerState = 0;
+			var titleIdx = 0;
 			
 			function init() {
 				info = document.getElementById('info');
@@ -141,14 +142,14 @@
 
 			function buildLightImgArray() {
 				lightImgArray = [];
-				for (i = 147; i >= 0 ; i--) {
+				for (i = 0; i <= 288 ; i++) {
 					var img = document.createElement("img");
 					if (i < 10)
-						img.setAttribute("src", "beacon/beacon_0000"+i+".png");
+						img.setAttribute("src", "titlenoalpha/titlenoalpha_0000"+i+".png");
 					else if (i < 100)
-						img.setAttribute("src", "beacon/beacon_000"+i+".png");
-					else 
-						img.setAttribute("src", "beacon/beacon_00"+i+".png");
+						img.setAttribute("src", "titlenoalpha/titlenoalpha_000"+i+".png");
+					else
+						img.setAttribute("src", "titlenoalpha/titlenoalpha_00"+i+".png");
 					lightImgArray.push(img);
 				}
 			}
@@ -173,11 +174,11 @@
 				for (i = 0; i <= 399 ; i++) {
 					var img = document.createElement("img");
 					if (i < 10)
-						img.setAttribute("src", "torch/torch_0000"+i+".png");
+						img.setAttribute("src", "torch2/torch2_0000"+i+".png");
 					else if (i < 100)
-						img.setAttribute("src", "torch/torch_000"+i+".png");
+						img.setAttribute("src", "torch2/torch2_000"+i+".png");
 					else 
-						img.setAttribute("src", "torch/torch_00"+i+".png");
+						img.setAttribute("src", "torch2/torch2_00"+i+".png");
 					torchImgArray.push(img);
 				}
 			}
@@ -228,14 +229,13 @@
 
 			function blank(a) {
 				bufferCanvasCtx.save();
-				bufferCanvasCtx.globalAlpha = a; // [0, 392]
 				// if ()
 
 				// Draw background
 				if (mainMoth.posX <= 500) {
 					var distance = mainMoth.posX * mainMoth.posX + (mainMoth.posY - 400) * (mainMoth.posY - 400) - 100;
 					distance = Math.round(Math.sqrt(distance) / 2.5);
-					if (distance >= 148) {
+					if (distance >= lightImgArray.length) {
 						lightAudio.pause();
 						distance = 147;
 					}
@@ -247,7 +247,12 @@
 						lightAudio.play();
 					}
 					mainMoth.size = 200 + (148 - distance);
-					bufferCanvasCtx.drawImage(lightImgArray[distance], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+					if (mainMoth.posY > 300) {
+						debug.innerHTML = titleIdx + " " + lightImgArray.length;
+						bufferCanvasCtx.drawImage(lightImgArray[titleIdx], 0, 0, bufferCanvasCtx.canvas.width, bufferCanvasCtx.canvas.height);
+						titleIdx++;
+					}
+					if (titleIdx >= lightImgArray.length) titleIdx = lightImgArray.length - 1;
 					if (mainMoth.posY > 700) {
 						blackBackground.alpha += 0.05;
 						if (blackBackground.alpha >= 1) blackBackground.alpha = 1;
@@ -261,6 +266,8 @@
 					}
 
 				}
+				bufferCanvasCtx.globalAlpha = a; // [0, 392]
+				if (mainMoth.posX <= 500) {}
 				// Yellow line
 				else if (mainMoth.posX > 500 && mainMoth.posX < 900) {
 					lightAudio.pause();
@@ -284,7 +291,7 @@
 					}
 				}
 				if (true) {
-					bufferCanvasCtx.globalAlpha = a / 1.5;
+					bufferCanvasCtx.globalAlpha = a;
 					bufferCanvasCtx.drawImage(silImgArray[silIdx], -bufferCanvas.width*0.3, 0, bufferCanvas.width, bufferCanvas.height);
 					bufferCanvasCtx.drawImage(silImgArray[silIdx], bufferCanvas.width*0.7, 0, bufferCanvas.width, bufferCanvas.height);
 					silIdx += 1;
@@ -394,6 +401,7 @@
 					}
 					else if (flowerState == 3) {
 						fireAlpha += 2;
+						idx = Math.floor(Math.random() * flowers.length);
 						flowers[idx].alpha -= 0.1;
 						if (flowers[idx].alpha < 0) {
 							flowers[idx].alpha = 0;
@@ -413,11 +421,6 @@
 					fireAlpha -= 10;
 					if (fireAlpha < 0) fireAlpha = 0;
 				}
-				debug.innerHTML = flowerState;
-				// debug.innerHTML = flowers[4].shown + " " + flowers[4].alpha + " " + flowers[4].posX + " " + flowers[4].series + " " + idx +" " + fireAlpha;
-				// debug.innerHTML = bufferCanvasCtx.globalAlpha;
-				// debug.innerHTML = flowers.length + " " + flowerImgArray.length + " " +flowerImgArray[flowerImgArray.length-1].length + " " + fireIdx;
-				// Second moth
 				if (mainMoth.posX > 900 && mainMoth.posY > 450) {
 					if (secondMoth.state == 0) {
 						secondMoth.goalX = mousePos.x;
@@ -468,7 +471,7 @@
 					}
 				}
 				if (fireAlpha > 0) {
-					if (fireAlpha > 100) fireAlpha = 100;
+					if (fireAlpha > 140) fireAlpha = 140;
 					alpha = (fireAlpha - 0) * 0.01;
 					bufferCanvasCtx.save();
 					bufferCanvasCtx.rotate(Math.PI);
